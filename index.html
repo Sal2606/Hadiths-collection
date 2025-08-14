@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Qur'an & Hadiths — FR/AR</title>
+  <meta name="description" content="Hadiths sunnites bilingues (arabe/français), recherche, favoris, mode nuit, hors-ligne. Open-source." />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <meta name="theme-color" content="#0d6efd" />
+
+  <!-- OG / Social -->
+  <meta property="og:title" content="Qur'an & Hadiths — FR/AR">
+  <meta property="og:description" content="Hadiths sunnites bilingues (arabe/français), recherche, favoris, mode nuit, hors-ligne.">
+  <meta property="og:image" content="icons/og-image.png">
+  <meta property="og:type" content="website">
+
+  <style>
+    :root {
+      --bg: #f8f9fa; --card: #ffffff; --text: #1f2937; --muted:#6b7280; --brand:#0d6efd; --ring:#e5e7eb;
+    }
+    [data-theme="dark"] {
+      --bg:#0b1220; --card:#111827; --text:#e5e7eb; --muted:#9ca3af; --brand:#60a5fa; --ring:#1f2937;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
+    header{
+      position:sticky;top:0;z-index:10;background:var(--card);border-bottom:1px solid var(--ring);
+      display:flex;gap:.75rem;align-items:center;justify-content:space-between;padding:.8rem 1rem
+    }
+    .brand{display:flex;align-items:center;gap:.6rem;font-weight:700}
+    .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--brand)}
+    .toolbar{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+    select,input,button{
+      border:1px solid var(--ring);background:var(--card);color:var(--text);padding:.55rem .7rem;border-radius:8px;
+    }
+    button.icon{display:inline-flex;align-items:center;gap:.4rem;cursor:pointer}
+    main{max-width:1100px;margin:1rem auto;padding:0 1rem}
+    .controls{display:grid;grid-template-columns:1fr auto auto;gap:.6rem;margin-bottom:1rem}
+    @media (max-width:720px){.controls{grid-template-columns:1fr 1fr;}.controls > *:last-child{grid-column:1/-1}}
+    .stats{font-size:.9rem;color:var(--muted)}
+    .cards{display:grid;grid-template-columns:1fr;gap:.8rem}
+    @media (min-width:720px){.cards{grid-template-columns:1fr 1fr}}
+    .card{
+      background:var(--card);border:1px solid var(--ring);border-radius:14px;padding:1rem;display:flex;flex-direction:column;gap:.6rem
+    }
+    .meta{display:flex;flex-wrap:wrap;gap:.5rem;font-size:.85rem;color:var(--muted)}
+    .badges{display:flex;gap:.35rem;flex-wrap:wrap}
+    .badge{font-size:.7rem;border:1px solid var(--ring);padding:.15rem .5rem;border-radius:999px;color:var(--muted)}
+    .ar{direction:rtl;text-align:right;font-size:1.18rem;line-height:1.8}
+    .fr{font-size:1rem;line-height:1.6}
+    .exp{
+      background:transparent;border:1px dashed var(--ring);border-radius:10px;padding:.6rem;font-size:.92rem;color:var(--muted)
+    }
+    .row{display:flex;gap:.5rem;flex-wrap:wrap}
+    .row button{font-size:.9rem}
+    .fav{color:var(--brand);border-color:var(--brand)}
+    .pagination{display:flex;justify-content:center;gap:.4rem;margin:1rem 0}
+    .pagination button{min-width:34px}
+    .hidden{display:none}
+    footer{color:var(--muted);font-size:.85rem;text-align:center;padding:2rem 1rem}
+    .link{color:var(--brand);text-decoration:none;border-bottom:1px dashed var(--brand)}
+    .kbd{border:1px solid var(--ring);padding:.05rem .35rem;border-radius:4px;font-size:.85em}
+  </style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="dot"></span>
+    <span>Qur'an & Hadiths — FR/AR</span>
+  </div>
+  <div class="toolbar">
+    <select id="collectionSelect" title="Collection">
+      <!-- rempli par JS -->
+    </select>
+    <input id="searchBox" type="search" placeholder="Rechercher (ar/fr)…  ⌘K" />
+    <select id="pageSize" title="Taille page">
+      <option>10</option><option selected>20</option><option>40</option><option>80</option>
+    </select>
+    <button id="themeBtn" class="icon" aria-label="Basculer thème">🌙/☀️</button>
+  </div>
+</header>
+
+<main id="app">
+  <section class="controls">
+    <div class="stats">{{ statsText }}</div>
+    <div>
+      <label><input type="checkbox" v-model="filters.ar" /> Afficher arabe</label>
+      <label style="margin-left:.6rem"><input type="checkbox" v-model="filters.fr" /> Afficher français</label>
+    </div>
+    <div class="row">
+      <button class="icon" @click="onlyFavs = !onlyFavs">{{ onlyFavs ? '👁️ Voir tout' : '⭐ Favoris' }}</button>
+      <button class="icon" @click="shareView">🔗 Partager la vue</button>
+    </div>
+  </section>
+
+  <section class="cards">
+    <article class="card" v-for="h in paginated" :key="h._id" :id="h._id">
+      <div class="meta">
+        <div class="badges">
+          <span class="badge">{{ h.Collection }}</span>
+          <span class="badge">Livre: {{ h.Book }}</span>
+          <span class="badge">#{{ h.Hadith_number }}</span>
+          <span class="badge" v-if="h.Classification">{{ h.Classification }}</span>
+        </div>
+      </div>
+
+      <div class="ar" v-if="filters.ar" v-html="safe(h.Arabic_text)"></div>
+      <div class="fr" v-if="filters.fr">{{ h.French_text }}</div>
+
+      <details class="exp" v-if="hasExp(h)">
+        <summary>🧭 Explications (FR/AR)</summary>
+        <div v-if="h.Word_explanations && Object.keys(h.Word_explanations).length">
+          <strong>FR :</strong>
+          <ul>
+            <li v-for="(v,k) in h.Word_explanations" :key="k"><em>{{ k }}</em> — {{ v }}</li>
+          </ul>
+        </div>
+        <div v-if="h.Arabic_explanations && Object.keys(h.Arabic_explanations).length">
+          <strong>AR :</strong>
+          <ul dir="rtl" style="text-align:right">
+            <li v-for="(v,k) in h.Arabic_explanations" :key="k"><em>{{ k }}</em> — {{ v }}</li>
+          </ul>
+        </div>
+      </details>
+
+      <div class="row">
+        <button class="icon" @click="toggleFav(h)"><span :class="{'fav':isFav(h)}">⭐</span> Favori</button>
+        <button class="icon" @click="readArabic(h)">🔊 Lecture arabe</button>
+        <button class="icon" @click="copyLink(h)">🔗 Lien</button>
+      </div>
+    </article>
+  </section>
+
+  <nav class="pagination" v-if="pages>1">
+    <button @click="goto(1)" :disabled="page===1">«</button>
+    <button @click="prev" :disabled="page===1">‹</button>
+    <span style="padding:.4rem .6rem">{{ page }} / {{ pages }}</span>
+    <button @click="next" :disabled="page===pages">›</button>
+    <button @click="goto(pages)" :disabled="page===pages">»</button>
+  </nav>
+</main>
+
+<footer>
+  <div>
+    <span class="kbd">⌘/Ctrl</span> + <span class="kbd">K</span> → focus recherche ·
+    <span class="kbd">←/→</span> → page précédente/suivante
+  </div>
+  <div style="margin-top:.4rem">
+    Open‑source • Fonctionne hors‑ligne (PWA) • Données: collections JSON dans <code>/data</code>
+  </div>
+</footer>
+
+<!-- Vue 3 (CDN) -->
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script>
+  // --- PWA
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+  }
+
+  // --- Thème
+  const html = document.documentElement;
+  const savedTheme = localStorage.getItem('theme');
+  if(savedTheme) html.setAttribute('data-theme', savedTheme);
+  document.getElementById('themeBtn').onclick = () => {
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next); localStorage.setItem('theme', next);
+  };
+
+  // --- Raccourcis
+  const searchBox = document.getElementById('searchBox');
+  window.addEventListener('keydown', (e)=>{
+    if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){e.preventDefault();searchBox.focus();}
+  });
+
+  // --- App Vue
+  const { createApp, computed, reactive, onMounted, ref } = Vue;
+
+  createApp({
+    setup(){
+      const collections = [
+        {key:'bukhari', label:'Bukhari'},
+        {key:'muslim', label:'Muslim'},
+        {key:'abudawood', label:'Abu Dawood'},
+        {key:'tirmidhi', label:'Tirmidhi'},
+        {key:'nasai', label:'Nasa’i'},
+        {key:'ibnmajah', label:'Ibn Mājah'},
+        {key:'malik', label:'Muwatta (Malik)'},
+        {key:'ahmed', label:'Musnad Ahmad'},
+        {key:'darimi', label:'Darimi'}
+      ];
+      const current = ref(collections[0].key);
+      const raw = ref([]);         // tableau brut de hadiths
+      const page = ref(1);
+      const size = ref(parseInt(document.getElementById('pageSize').value,10) || 20);
+      const q = ref('');
+      const onlyFavs = ref(false);
+      const filters = reactive({ ar:true, fr:true });
+      const favSet = reactive(new Set(JSON.parse(localStorage.getItem('favs')||'[]')));
+
+      // UI binds
+      const collSel = document.getElementById('collectionSelect');
+      collections.forEach(c=>{
+        const opt = document.createElement('option'); opt.value=c.key; opt.textContent=c.label; collSel.appendChild(opt);
+      });
+      collSel.onchange = ()=>{ current.value = collSel.value; loadCollection(); };
+
+      document.getElementById('pageSize').onchange = (e)=>{ size.value = parseInt(e.target.value,10); page.value=1; };
+
+      searchBox.addEventListener('input', e=>{ q.value = e.target.value.trim().toLowerCase(); page.value=1; });
+
+      // Charger JSON
+      async function loadCollection(){
+        const url = `./data/${current.value}.json`;
+        try{
+          const res = await fetch(url, {cache:'no-store'});
+          const arr = await res.json();
+          // Normalisation: ajouter _id unique et champs manquants
+          raw.value = arr.map(h=>{
+            const id = `${h.Collection||guessCollection(current.value)}:${h.Book||'0'}:${h.Hadith_number||h.number||'0'}`;
+            return {
+              _id:id,
+              Collection: h.Collection || guessCollection(current.value),
+              Book: h.Book ?? h.book ?? '',
+              Hadith_number: h.Hadith_number ?? h.number ?? '',
+              Arabic_text: h.Arabic_text ?? h.arabic ?? '',
+              English_text: h.English_text ?? h.english ?? '',
+              French_text: h.French_text ?? h.french ?? '',
+              Word_explanations: h.Word_explanations ?? {},
+              Arabic_explanations: h.Arabic_explanations ?? {},
+              Classification: h.Classification ?? h.grade ?? ''
+            }
+          });
+          // Ancre ?hadith=<id>
+          const id = new URL(location.href).searchParams.get('hadith');
+          if(id){
+            const idx = raw.value.findIndex(x=>x._id===id);
+            if(idx>=0){ page.value = Math.floor(idx/size.value)+1; setTimeout(()=>document.getElementById(id)?.scrollIntoView({behavior:'smooth'}), 150); }
+          }else{
+            page.value = 1;
+          }
+          collSel.value = current.value;
+        }catch(e){
+          raw.value = [];
+          console.error('Erreur de chargement', e);
+        }
+      }
+      function guessCollection(key){
+        const map = {bukhari:'Bukhari',muslim:'Muslim',abudawood:'Abu Dawood',tirmidhi:'Tirmidhi',nasai:'Nasa’i',ibnmajah:'Ibn Mājah',malik:'Malik',ahmed:'Ahmad',darimi:'Darimi'};
+        return map[key] || key;
+      }
+
+      const filtered = computed(()=>{
+        const term = q.value;
+        const list = raw.value.filter(h=>{
+          if(onlyFavs.value && !favSet.has(h._id)) return false;
+          if(!term) return true;
+          const hay = [
+            (h.Arabic_text||'').toLowerCase(),
+            (h.French_text||'').toLowerCase(),
+            (h.English_text||'').toLowerCase(),
+            (h.Book||'').toLowerCase(),
+            (h.Classification||'').toLowerCase()
+          ].join(' • ');
+          return hay.includes(term);
+        });
+        return list;
+      });
+
+      const pages = computed(()=> Math.max(1, Math.ceil(filtered.value.length/size.value)));
+      const paginated = computed(()=>{
+        const start = (page.value-1)*size.value;
+        return filtered.value.slice(start, start+size.value);
+      });
+
+      function next(){ if(page.value<pages.value) page.value++; }
+      function prev(){ if(page.value>1) page.value--; }
+      function goto(p){ page.value = Math.min(Math.max(1,p), pages.value); }
+
+      // Favoris
+      function toggleFav(h){
+        if(favSet.has(h._id)) favSet.delete(h._id); else favSet.add(h._id);
+        localStorage.setItem('favs', JSON.stringify([...favSet]));
+      }
+      function isFav(h){ return favSet.has(h._id); }
+
+      // Lecture arabe (Web Speech API)
+      function readArabic(h){
+        if(!('speechSynthesis' in window)) return alert("Lecture vocale non disponible sur ce navigateur.");
+        const utt = new SpeechSynthesisUtterance(stripHtml(h.Arabic_text||''));
+        utt.lang = 'ar'; utt.rate = 0.95; utt.pitch = 1;
+        // essayer de trouver une voix arabe
+        const voices = speechSynthesis.getVoices();
+        const v = voices.find(v=>v.lang?.toLowerCase().startsWith('ar')) || voices.find(v=>/arabic|ar/.test(v.name.toLowerCase()));
+        if(v) utt.voice = v;
+        speechSynthesis.cancel(); speechSynthesis.speak(utt);
+      }
+
+      // Partage / Lien direct
+      function copyLink(h){
+        const url = new URL(location.href);
+        url.searchParams.set('hadith', h._id);
+        navigator.clipboard.writeText(url.toString());
+        alert('Lien copié ✅');
+      }
+      async function shareView(){
+        const url = new URL(location.href);
+        url.searchParams.set('collection', current.value);
+        url.searchParams.set('q', q.value||'');
+        const link = url.toString();
+        if(navigator.share){
+          try{ await navigator.share({title:'Qur\'an & Hadiths', url: link}); }catch{}
+        }else{
+          await navigator.clipboard.writeText(link);
+          alert('Lien de la vue copié ✅');
+        }
+      }
+
+      // Util
+      function stripHtml(s){ return (s||'').replace(/<[^>]+>/g,''); }
+      function safe(html){ return html || ''; }
+      function hasExp(h){
+        return (h.Word_explanations && Object.keys(h.Word_explanations).length) ||
+               (h.Arabic_explanations && Object.keys(h.Arabic_explanations).length);
+      }
+
+      // Lecture paramètres d’URL
+      onMounted(()=>{
+        const sp = new URL(location.href).searchParams;
+        const col = sp.get('collection'); if(col) current.value = col;
+        const term = sp.get('q'); if(term){ q.value = term; searchBox.value = term; }
+        loadCollection();
+
+        // Pagination via flèches
+        window.addEventListener('keydown', (e)=>{
+          if(e.target === searchBox) return;
+          if(e.key==='ArrowRight') next();
+          if(e.key==='ArrowLeft') prev();
+        });
+      });
+
+      return {
+        filters, onlyFavs,
+        paginated, pages, page,
+        next, prev, goto,
+        toggleFav, isFav, readArabic, copyLink, shareView,
+        safe,
+        statsText: computed(()=>`${filtered.value.length} résultat(s) • ${pages.value} page(s)`),
+      }
+    }
+  }).mount('#app');
+</script>
+</body>
+</html>
